@@ -125,3 +125,43 @@ Option B (email based):
 - **Add Firestore Security Rules** so only admins can read/write admin-managed collections.
 - Consider using **UID-only** admin docs (`admins/{uid}`) as the canonical schema (more reliable than email matching).
 
+## Admin panel “dynamic data” (Firestore-backed tables + stats)
+
+The admin panel now reads real data from Firestore for:
+
+- Dashboard stat cards (counts / revenue estimate)
+- Tickets table
+- Service requests table
+
+### Expected collection names (defaults)
+
+These are the default collection names used by the admin panel code:
+
+- `users`
+- `calls` (expects optional field `status`)
+- `conversations` (expects optional field `status`)
+- `posts`
+- `transactions` (expects optional fields `amount`, `createdAt`)
+- `live_sessions` (expects optional field `status`)
+- `tickets` (expects optional field `createdAt`)
+- `service_requests` (expects optional field `createdAt`)
+
+If your backend uses different names, update constants in:
+- `lib/app/services/admin_firestore_repository.dart`
+
+### Expected fields (best-effort / optional)
+
+Tables are defensive: if a field is missing, the UI shows `—`.
+
+- **Tickets** (`tickets`):
+  - `createdAt` (Timestamp)
+  - optional: `ticketId`/`id`, `userName`/`userId`, `issue`/`title`, `priority`, `status`
+
+- **Service requests** (`service_requests`):
+  - `createdAt` (Timestamp)
+  - optional: `requestId`/`id`, `userName`/`userId`, `service`/`serviceName`, `status`, `amount`/`price`
+
+### Permissions note
+
+Admins must have Firestore read permissions for these collections; otherwise the UI will show load errors or `—`.
+
