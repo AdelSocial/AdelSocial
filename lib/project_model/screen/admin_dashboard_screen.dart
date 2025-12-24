@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:model_project/app/app_routes.dart';
 
 class AdminApp extends StatelessWidget {
   const AdminApp({super.key});
@@ -217,6 +219,17 @@ class _ProfileAction extends StatelessWidget {
             ),
           ),
         ],
+        onSelected: (value) async {
+          if (value == 'logout') {
+            await FirebaseAuth.instance.signOut();
+            if (!context.mounted) return;
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.adminLogin,
+              (_) => false,
+            );
+          }
+        },
         icon: const Icon(Icons.person, color: Colors.white, size: 20),
         offset: const Offset(0, 50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

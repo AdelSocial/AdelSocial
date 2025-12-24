@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:model_project/app/app_routes.dart';
-import 'package:model_project/app/view/navigation/admin_login_screen.dart';
+import 'package:model_project/project_model/screen/admin_dashboard_screen.dart';
 import '../contact_us_screen.dart';
 import '../privacy_policy_screen.dart';
 import '../profile_screen.dart';
@@ -113,11 +113,12 @@ class SettingsScreen extends StatelessWidget {
 
                 // Admin Login (New Addition)
                 _buildSettingsCard(
-                  title: 'Admin Login',
+                  title: 'Admin Panel',
                   icon: Icons.admin_panel_settings_rounded,
                   color: Colors.red,
                   onTap: () {
-                    Get.toNamed(AppRoutes.adminLogin);
+                    // Go directly to dashboard; middleware will redirect to login if needed.
+                    Get.toNamed(DashboardPage.route);
                   },
                 ),
 
