@@ -2,6 +2,14 @@
 
 A new Flutter project.
 
+## Admin panel + admin auth
+
+See `ADMIN_AUTH_AND_ADMIN_PANEL.md` for:
+
+- How admin login works (Firebase Auth + Firestore `admins`)
+- Which routes are protected (`/admin/*`)
+- How to provision an admin user (no hardcoded credentials)
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

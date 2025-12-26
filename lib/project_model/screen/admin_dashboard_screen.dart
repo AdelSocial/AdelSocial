@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:model_project/app/app_routes.dart';
+import 'package:model_project/app/services/admin_firestore_repository.dart';
 
 class AdminApp extends StatelessWidget {
   const AdminApp({super.key});
@@ -217,6 +220,17 @@ class _ProfileAction extends StatelessWidget {
             ),
           ),
         ],
+        onSelected: (value) async {
+          if (value == 'logout') {
+            await FirebaseAuth.instance.signOut();
+            if (!context.mounted) return;
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.adminLogin,
+              (_) => false,
+            );
+          }
+        },
         icon: const Icon(Icons.person, color: Colors.white, size: 20),
         offset: const Offset(0, 50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -619,51 +633,67 @@ class _DashboardStatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      childAspectRatio: 0.9,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      children: const [
-        StatCard(
-          title: 'Total Users',
-          value: '12,340',
-          icon: Icons.people_alt_outlined,
-          color: Color(0xFFEC407A),
-        ),
-        StatCard(
-          title: 'Active Calls',
-          value: '12',
-          icon: Icons.videocam_outlined,
-          color: Color(0xFFAB47BC),
-        ),
-        StatCard(
-          title: 'Ongoing Chats',
-          value: '34',
-          icon: Icons.chat_bubble_outline,
-          color: Color(0xFF7E57C2),
-        ),
-        StatCard(
-          title: 'Total Posts',
-          value: '56',
-          icon: Icons.article_outlined,
-          color: Color(0xFF5C6BC0),
-        ),
-        StatCard(
-          title: 'Revenue (MoM)',
-          value: '₹ 4.2L',
-          icon: Icons.payments_outlined,
-          color: Color(0xFF26A69A),
-        ),
-        StatCard(
-          title: 'Live Sessions',
-          value: '3',
-          icon: Icons.podcasts_outlined,
-          color: Color(0xFFFFA726),
-        ),
-      ],
+    final repo = AdminFirestoreRepository();
+    return FutureBuilder<AdminDashboardStats>(
+      future: repo.fetchDashboardStats(),
+      builder: (context, snap) {
+        final stats = snap.data ??
+            const AdminDashboardStats(
+              totalUsers: '…',
+              activeCalls: '…',
+              ongoingChats: '…',
+              totalPosts: '…',
+              revenueMoM: '…',
+              liveSessions: '…',
+            );
+
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 0.9,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          children: [
+            StatCard(
+              title: 'Total Users',
+              value: stats.totalUsers,
+              icon: Icons.people_alt_outlined,
+              color: const Color(0xFFEC407A),
+            ),
+            StatCard(
+              title: 'Active Calls',
+              value: stats.activeCalls,
+              icon: Icons.videocam_outlined,
+              color: const Color(0xFFAB47BC),
+            ),
+            StatCard(
+              title: 'Ongoing Chats',
+              value: stats.ongoingChats,
+              icon: Icons.chat_bubble_outline,
+              color: const Color(0xFF7E57C2),
+            ),
+            StatCard(
+              title: 'Total Posts',
+              value: stats.totalPosts,
+              icon: Icons.article_outlined,
+              color: const Color(0xFF5C6BC0),
+            ),
+            StatCard(
+              title: 'Revenue (MoM)',
+              value: stats.revenueMoM,
+              icon: Icons.payments_outlined,
+              color: const Color(0xFF26A69A),
+            ),
+            StatCard(
+              title: 'Live Sessions',
+              value: stats.liveSessions,
+              icon: Icons.podcasts_outlined,
+              color: const Color(0xFFFFA726),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1577,6 +1607,7 @@ class TicketsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final repo = AdminFirestoreRepository();
     return AdminScaffold(
       title: 'Issue Tickets',
       body: SectionCard(
@@ -1607,55 +1638,54 @@ class TicketsPage extends StatelessWidget {
                 foregroundColor: Colors.white,
               ),
             ),
-            SizedBox(height: 10,),
-            const SimpleDataTable(
-              columns: [
-                'ID',
-                'User',
-                'Issue',
-                'Priority',
-                'Status',
-                'Date',
-                'Actions',
-              ],
-              rows: [
-                [
-                  '#T-1023',
-                  'Vikram',
-                  'Payment failed',
-                  'High',
-                  'Open',
-                  '2025-11-05',
-                  'View',
-                ],
-                [
-                  '#T-1022',
-                  'Sara',
-                  'Bug in chat',
-                  'Medium',
-                  'Pending',
-                  '2025-11-04',
-                  'View',
-                ],
-                [
-                  '#T-1021',
-                  'Rahul',
-                  'Feature request',
-                  'Low',
-                  'Resolved',
-                  '2025-11-03',
-                  'View',
-                ],
-                [
-                  '#T-1020',
-                  'Neha',
-                  'Account issue',
-                  'High',
-                  'Open',
-                  '2025-11-03',
-                  'View',
-                ],
-              ],
+            const SizedBox(height: 10),
+            StreamBuilder(
+              stream: repo.latestTickets(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Text('Failed to load tickets.');
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final docs = snapshot.data!.docs;
+                final rows = docs.map((d) {
+                  final data = d.data();
+                  final id = (data['ticketId'] ?? data['id'] ?? d.id).toString();
+                  final user = (data['userName'] ??
+                          data['user'] ??
+                          data['userId'] ??
+                          data['uid'] ??
+                          '—')
+                      .toString();
+                  final issue = (data['issue'] ?? data['title'] ?? data['message'] ?? '—')
+                      .toString();
+                  final priority = (data['priority'] ?? '—').toString();
+                  final status = (data['status'] ?? '—').toString();
+                  final date = AdminFirestoreRepository.formatDate(
+                    data['createdAt'] ?? data['date'] ?? data['updatedAt'],
+                  );
+                  return [id, user, issue, priority, status, date, 'View'];
+                }).toList();
+
+                return SimpleDataTable(
+                  columns: const [
+                    'ID',
+                    'User',
+                    'Issue',
+                    'Priority',
+                    'Status',
+                    'Date',
+                    'Actions',
+                  ],
+                  rows: rows.isEmpty
+                      ? const [
+                          ['—', '—', 'No tickets found', '—', '—', '—', '—']
+                        ]
+                      : rows,
+                );
+              },
             ),
             const SizedBox(height: 20),
             Wrap(
@@ -1760,6 +1790,7 @@ class ServiceRequestsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final repo = AdminFirestoreRepository();
     return AdminScaffold(
       title: 'Service Requests',
       body: SectionCard(
@@ -1768,49 +1799,51 @@ class ServiceRequestsPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 🟩 Simple Data Table
-            const SimpleDataTable(
-              columns: [
-                'Req ID',
-                'User',
-                'Service',
-                'Date',
-                'Status',
-                'Amount',
-              ],
-              rows: [
-                [
-                  '#SR-5501',
-                  'Manu',
-                  'Video Call',
-                  '2025-11-05',
-                  'Pending',
-                  '₹299',
-                ],
-                [
-                  '#SR-5500',
-                  'Priya',
-                  'Exclusive Post',
-                  '2025-11-04',
-                  'Approved',
-                  '₹499',
-                ],
-                [
-                  '#SR-5499',
-                  'Amit',
-                  'Audio Call',
-                  '2025-11-04',
-                  'Completed',
-                  '₹199',
-                ],
-                [
-                  '#SR-5498',
-                  'Sonia',
-                  'Live Session',
-                  '2025-11-03',
-                  'Rejected',
-                  '₹799',
-                ],
-              ],
+            StreamBuilder(
+              stream: repo.latestServiceRequests(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Text('Failed to load service requests.');
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final docs = snapshot.data!.docs;
+                final rows = docs.map((d) {
+                  final data = d.data();
+                  final id = (data['requestId'] ?? data['id'] ?? d.id).toString();
+                  final user = (data['userName'] ??
+                          data['user'] ??
+                          data['userId'] ??
+                          data['uid'] ??
+                          '—')
+                      .toString();
+                  final service = (data['service'] ?? data['serviceName'] ?? '—').toString();
+                  final date = AdminFirestoreRepository.formatDate(
+                    data['createdAt'] ?? data['date'] ?? data['updatedAt'],
+                  );
+                  final status = (data['status'] ?? '—').toString();
+                  final amount = (data['amount'] ?? data['price'] ?? '—').toString();
+                  return [id, user, service, date, status, amount];
+                }).toList();
+
+                return SimpleDataTable(
+                  columns: const [
+                    'Req ID',
+                    'User',
+                    'Service',
+                    'Date',
+                    'Status',
+                    'Amount',
+                  ],
+                  rows: rows.isEmpty
+                      ? const [
+                          ['—', '—', 'No requests found', '—', '—', '—']
+                        ]
+                      : rows,
+                );
+              },
             ),
 
             const SizedBox(height: 20),

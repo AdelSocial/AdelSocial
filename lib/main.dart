@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'app/app_routes.dart';
+import 'app/middleware/admin_route_guard.dart';
 import 'app/view/dash_screen.dart';
 import 'app/view/create_profile_screen.dart';
 import 'app/view/intro_screen.dart';
@@ -10,11 +11,14 @@ import 'app/view/navigation/admin_login_screen.dart';
 import 'app/view/privacy_policy_screen.dart';
 import 'app/view/terms_conditions_screen.dart';
 import 'app/view/verification_screen.dart';
+import 'firebase_options.dart';
 import 'project_model/screen/admin_dashboard_screen.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -47,34 +51,82 @@ class MyApp extends StatelessWidget {
         ),
 
         // Admin flow (same app, namespaced routes)
-        GetPage(name: AppRoutes.adminLogin, page: () => const AdminLoginScreen()),
+        GetPage(
+          name: AppRoutes.adminLogin,
+          page: () => const AdminLoginScreen(),
+          middlewares: [AdminRouteGuard()],
+        ),
 
         // Admin pages
-        GetPage(name: DashboardPage.route, page: () => const DashboardPage()),
-        GetPage(name: VideoCallsPage.route, page: () => const VideoCallsPage()),
-        GetPage(name: AudioCallsPage.route, page: () => const AudioCallsPage()),
-        GetPage(name: MessagesPage.route, page: () => const MessagesPage()),
-        GetPage(name: ChatPage.route, page: () => const ChatPage()),
-        GetPage(name: NotificationsPage.route, page: () => const NotificationsPage()),
-        GetPage(name: AddPostPage.route, page: () => const AddPostPage()),
-        GetPage(name: TicketsPage.route, page: () => const TicketsPage()),
+        GetPage(
+          name: DashboardPage.route,
+          page: () => const DashboardPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
+        GetPage(
+          name: VideoCallsPage.route,
+          page: () => const VideoCallsPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
+        GetPage(
+          name: AudioCallsPage.route,
+          page: () => const AudioCallsPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
+        GetPage(
+          name: MessagesPage.route,
+          page: () => const MessagesPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
+        GetPage(
+          name: ChatPage.route,
+          page: () => const ChatPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
+        GetPage(
+          name: NotificationsPage.route,
+          page: () => const NotificationsPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
+        GetPage(
+          name: AddPostPage.route,
+          page: () => const AddPostPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
+        GetPage(
+          name: TicketsPage.route,
+          page: () => const TicketsPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
         GetPage(
           name: ServicesPricingPage.route,
           page: () => const ServicesPricingPage(),
+          middlewares: [AdminRouteGuard()],
         ),
         GetPage(
           name: ServiceRequestsPage.route,
           page: () => const ServiceRequestsPage(),
+          middlewares: [AdminRouteGuard()],
         ),
         GetPage(
           name: ExclusivePostsPage.route,
           page: () => const ExclusivePostsPage(),
+          middlewares: [AdminRouteGuard()],
         ),
-        GetPage(name: GoLivePage.route, page: () => const GoLivePage()),
-        GetPage(name: AnalyticsPage.route, page: () => const AnalyticsPage()),
+        GetPage(
+          name: GoLivePage.route,
+          page: () => const GoLivePage(),
+          middlewares: [AdminRouteGuard()],
+        ),
+        GetPage(
+          name: AnalyticsPage.route,
+          page: () => const AnalyticsPage(),
+          middlewares: [AdminRouteGuard()],
+        ),
         GetPage(
           name: CustomizeAppPage.route,
           page: () => const CustomizeAppPage(),
+          middlewares: [AdminRouteGuard()],
         ),
       ],
       unknownRoute: GetPage(
